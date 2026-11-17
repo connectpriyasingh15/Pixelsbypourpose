@@ -1,0 +1,268 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --night: #030303;
+  --mist: #e8e8e3;
+  --forest: #245a45;
+  --forest-bright: #3e9b72; /* green on dark */
+  --accent-deep: #1c6b47; /* green on light (paper) */
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  background: var(--night);
+  color: var(--mist);
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(232, 232, 227, 0.2);
+  color: var(--mist);
+}
+
+.display {
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+
+/* ── Greeting preloader: a stage curtain rising ─────────────────────── */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Heavy dark fabric: near-black base + faint vertical pleats + edge shading
+     so the panel reads as gathered cloth rather than a flat plane. */
+  background-color: #050607;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.6),
+      rgba(0, 0, 0, 0) 13%,
+      rgba(0, 0, 0, 0) 87%,
+      rgba(0, 0, 0, 0.6)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.02) 0,
+      rgba(255, 255, 255, 0.02) 1px,
+      rgba(0, 0, 0, 0) 1px,
+      rgba(0, 0, 0, 0) 34px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.3) 0,
+      rgba(0, 0, 0, 0.3) 2px,
+      rgba(0, 0, 0, 0) 2px,
+      rgba(0, 0, 0, 0) 34px
+    );
+  /* Weighted swag hem. */
+  border-bottom-left-radius: 50% 16vh;
+  border-bottom-right-radius: 50% 16vh;
+  /* Forest-green footlight catching the hem; it sweeps up into view as the
+     curtain rises (clipped below the fold while the greeting plays). */
+  box-shadow:
+    0 3px 0 rgba(242, 242, 240, 0.3),
+    0 10px 60px rgba(242, 242, 240, 0.12),
+    0 40px 120px rgba(0, 0, 0, 0.6);
+  will-change: transform, box-shadow, border-radius;
+  transition:
+    transform 1.15s cubic-bezier(0.66, 0, 0.2, 1),
+    box-shadow 1.15s cubic-bezier(0.66, 0, 0.2, 1),
+    border-radius 1.15s cubic-bezier(0.66, 0, 0.2, 1);
+}
+.intro--leaving {
+  transform: translateY(-101%);
+  /* Hem relaxes flatter as the weight lifts, footlight flares brighter. */
+  border-bottom-left-radius: 50% 7vh;
+  border-bottom-right-radius: 50% 7vh;
+  box-shadow:
+    0 3px 0 rgba(242, 242, 240, 0.6),
+    0 14px 90px rgba(242, 242, 240, 0.2),
+    0 40px 140px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.intro__word {
+  display: flex;
+  align-items: center;
+  gap: 0.42em;
+  font-family: var(--font-brico), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: clamp(3rem, 9vw, 7rem);
+  letter-spacing: -0.02em;
+  color: #f2f2f0;
+  line-height: 1;
+  transition:
+    opacity 0.55s ease,
+    transform 0.9s cubic-bezier(0.66, 0, 0.2, 1);
+}
+/* Greeting bows out ahead of the fabric instead of riding it offscreen. */
+.intro--leaving .intro__word {
+  opacity: 0;
+  transform: translateY(-14%);
+}
+.intro__pixel {
+  width: 0.17em;
+  height: 0.17em;
+  background: #f2f2f0;
+  transform: translateY(0.06em);
+  transition: box-shadow 0.6s ease;
+}
+.intro--leaving .intro__pixel {
+  box-shadow: 0 0 22px 5px rgba(242, 242, 240, 0.8);
+}
+
+/* ── Diya glow: living lamps adrift on the night canvas ────────────── */
+.diya-wrap {
+  animation-name: diya-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  will-change: transform;
+}
+
+/* the halo: uneven lamplight, two off-center lobes on an irregular
+   blob, dissolving long and low into the night */
+.diya-halo {
+  background:
+    radial-gradient(
+      ellipse 62% 50% at 42% 60%,
+      rgba(255, 168, 82, 0.2) 0%,
+      rgba(255, 132, 44, 0.08) 38%,
+      rgba(255, 110, 30, 0) 62%
+    ),
+    radial-gradient(
+      ellipse 85% 70% at 58% 42%,
+      rgba(255, 148, 64, 0.1) 0%,
+      rgba(240, 110, 36, 0.04) 45%,
+      rgba(200, 90, 30, 0) 68%
+    );
+  border-radius: 58% 42% 55% 45% / 45% 60% 40% 55%;
+  filter: blur(18px);
+  mix-blend-mode: screen;
+  animation-name: diya-flicker;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  opacity: 0.5;
+  will-change: opacity;
+}
+
+/* the flame: a small bright elongated core, licking upward */
+.diya-core {
+  left: 50%;
+  top: 48%;
+  width: 13%;
+  height: 24%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 46% 62% at 47% 64%,
+    rgba(255, 224, 164, 0.7) 0%,
+    rgba(255, 172, 86, 0.32) 42%,
+    rgba(255, 140, 50, 0) 72%
+  );
+  filter: blur(4px);
+  mix-blend-mode: screen;
+  animation-name: diya-flicker, diya-lick;
+  animation-timing-function: linear, ease-in-out;
+  animation-iteration-count: infinite, infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes diya-drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(16px, -30px, 0);
+  }
+}
+
+/* irregular, candle-like: uneven steps, never a smooth pulse */
+@keyframes diya-flicker {
+  0% {
+    opacity: 0.72;
+  }
+  7% {
+    opacity: 0.92;
+  }
+  13% {
+    opacity: 0.68;
+  }
+  21% {
+    opacity: 1;
+  }
+  28% {
+    opacity: 0.78;
+  }
+  36% {
+    opacity: 0.95;
+  }
+  45% {
+    opacity: 0.66;
+  }
+  53% {
+    opacity: 0.88;
+  }
+  62% {
+    opacity: 0.74;
+  }
+  71% {
+    opacity: 0.98;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  89% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.72;
+  }
+}
+
+/* the flame leans and stretches as it burns */
+@keyframes diya-lick {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1, 1);
+  }
+  18% {
+    transform: translate(-52%, -54%) scale(0.94, 1.1);
+  }
+  34% {
+    transform: translate(-48%, -49%) scale(1.05, 0.94);
+  }
+  52% {
+    transform: translate(-51%, -55%) scale(0.96, 1.12);
+  }
+  70% {
+    transform: translate(-49%, -51%) scale(1.03, 0.96);
+  }
+  86% {
+    transform: translate(-50%, -53%) scale(0.97, 1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
