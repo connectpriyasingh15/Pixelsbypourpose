@@ -149,7 +149,7 @@ const HERO_IMG = "/varanasi/scene-01.webp";
 
 // Bump when any scene asset is re-exported: busts every stale cache
 // (posters, clips, and the loader's warm fetches all carry it).
-const ASSET_V = "?v=2";
+const ASSET_V = "?v=3";
 const motionSrc = (img: string) =>
   img.replace("/varanasi/scene-", "/varanasi/motion/scene-").replace(".webp", ".mp4") + ASSET_V;
 
@@ -239,7 +239,9 @@ function Scene({
       const t = Math.min(1, (v - end) / f);
       return `blur(${(7 * t).toFixed(1)}px)`;
     }
-    return "blur(0px)";
+    // "none" (not blur(0px)) so the browser drops the filter layer and
+    // composites the video directly while a scene holds.
+    return "none";
   });
 
   // The living frame: each scene is a short motion loop, poster'd by
@@ -265,8 +267,8 @@ function Scene({
       const v = p.get();
       // Mount just the immediate neighborhood (one section each way);
       // farther scenes are posters, keeping decoder use minimal.
-      const near = v >= start - 3 * f && v <= end + 3 * f;
-      const far = v < start - 5 * f || v > end + 5 * f;
+      const near = v >= start - 2 * f && v <= end + 1.5 * f;
+      const far = v < start - 4 * f || v > end + 3 * f;
       if (near) setLive(true);
       else if (far && !first) setLive(false);
       const el = videoRef.current;
@@ -434,12 +436,20 @@ export default function FilmAct() {
     const onMouse = (e: MouseEvent) => {
       m.x = (e.clientX / window.innerWidth) * 2 - 1;
       m.y = (e.clientY / window.innerHeight) * 2 - 1;
+      if (!raf) raf = requestAnimationFrame(tick);
     };
     window.addEventListener("mousemove", onMouse);
+    // The loop runs only while the lean is still easing toward the
+    // cursor, then sleeps until the mouse moves again, so an idle page
+    // is not recompositing the full video stack every frame.
     const tick = () => {
-      raf = requestAnimationFrame(tick);
       m.lx += (m.x - m.lx) * 0.045;
       m.ly += (m.y - m.ly) * 0.045;
+      if (Math.abs(m.x - m.lx) > 0.001 || Math.abs(m.y - m.ly) > 0.001) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        raf = 0;
+      }
       frame.style.transform = `translate3d(${(-m.lx * 20).toFixed(2)}px, ${(
         -m.ly * 12
       ).toFixed(2)}px, 0) scale(1.03)`;
@@ -519,6 +529,12 @@ export default function FilmAct() {
     const holds = [0, ...CHAPTERS.map((_, i) => HERO_SHARE + (i + 0.55) * LC), 1];
 
     let idle: ReturnType<typeof setTimeout> | undefined;
+    // The hold the camera last rested on. Settling is directional: once
+    // the reader has scrolled clearly away from it, the magnet carries
+    // them on to the next hold in the direction they were going, never
+    // back. (Snapping to the *nearest* hold pulled short trackpad
+    // flicks back to where they started, so the film felt stuck.)
+    let restV = scrollYProgress.get();
     const settle = () => {
       if (glideState.current.locked) return;
       const v = scrollYProgress.get();
@@ -527,6 +543,18 @@ export default function FilmAct() {
       for (let k = 1; k < holds.length; k++) {
         if (Math.abs(v - holds[k]) < Math.abs(v - holds[best])) best = k;
       }
+      const moved = v - restV;
+      if (Math.abs(moved) > 0.004) {
+        // Nearest hold among those past the last rest in the travel
+        // direction.
+        let pick = -1;
+        holds.forEach((h, k) => {
+          const onward = moved > 0 ? h > restV + 0.001 : h < restV - 0.001;
+          if (onward && (pick < 0 || Math.abs(v - h) < Math.abs(v - holds[pick]))) pick = k;
+        });
+        if (pick >= 0) best = pick;
+      }
+      restV = holds[best];
       if (Math.abs(v - holds[best]) > 0.003) glideTo(holds[best], 0.9);
     };
     const kick = () => {
